@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import authRoutes from './routes/auth.routes';
 import { errorHandler } from './middlewares/errorHandler';
 
 const app = express();
@@ -14,6 +15,8 @@ app.use(morgan('dev'));
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
+
+app.use('/api/auth', authRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
