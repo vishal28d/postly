@@ -163,17 +163,14 @@ This is a comprehensive, step-by-step breakdown of the Postly Multi-Platform AI 
 **Objective**: Abstract the AI generation logic with strict prompt engineering.
 
 ### Subtask 6.1: API Clients Setup
-- Install SDKs: `npm i openai @anthropic-ai/sdk`.
+- Install SDKs: `npm i @google/generative-ai`.
 - Create `src/services/ai.service.ts`.
-- Implement a helper to resolve which API key to use (User's custom key from DB decrypted, fallback to `.env` key).
+- Implement a helper to resolve which API key to use (User's custom Gemini key from DB decrypted, fallback to `.env` key).
 - **Commit**: `chore: setup AI SDKs and key resolution`
 
 ### Subtask 6.2: Prompt Engineering
 - Define platform constraints explicitly in system prompts:
   - **Twitter**: Max 280 chars, 2-3 hashtags, punchy opener.
-  - **LinkedIn**: 800-1300 chars, strictly professional tone, 3-5 hashtags.
-  - **Instagram**: Caption style, emoji-friendly, 10-15 hashtags.
-  - **Threads**: Max 500 chars, conversational.
 - Create prompt builders that inject the user's `idea`, `post_type`, `tone`, and `language`.
 - **Commit**: `feat: design strict platform-specific AI prompts`
 
@@ -181,7 +178,7 @@ This is a comprehensive, step-by-step breakdown of the Postly Multi-Platform AI 
 - Create `src/controllers/content.controller.ts` & `src/routes/content.routes.ts`.
 - **POST /api/content/generate**:
   - Accept generation payload.
-  - Route to OpenAI (GPT-4o) or Anthropic (Claude Sonnet).
+  - Route to Gemini.
   - Parse the AI response into the required JSON envelope (per-platform output + token usage).
 - **Commit**: `feat: implement content generation endpoint`
 

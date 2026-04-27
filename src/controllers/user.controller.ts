@@ -79,14 +79,12 @@ export const deleteSocialAccount = async (req: AuthRequest, res: Response) => {
 
 export const updateAIKeys = async (req: AuthRequest, res: Response) => {
   try {
-    const { openai_key, anthropic_key } = req.body;
+    const { gemini_key } = req.body;
     
-    const openai_key_enc = openai_key ? encrypt(openai_key) : undefined;
-    const anthropic_key_enc = anthropic_key ? encrypt(anthropic_key) : undefined;
+    const gemini_key_enc = gemini_key ? encrypt(gemini_key) : undefined;
     
     const data: any = {};
-    if (openai_key_enc) data.openai_key_enc = openai_key_enc;
-    if (anthropic_key_enc) data.anthropic_key_enc = anthropic_key_enc;
+    if (gemini_key_enc) data.gemini_key_enc = gemini_key_enc;
     
     const aiKeys = await prisma.aIKey.upsert({
       where: { user_id: req.user!.id },

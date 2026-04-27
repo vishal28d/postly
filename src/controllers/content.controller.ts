@@ -6,10 +6,10 @@ import { z } from 'zod';
 const generateSchema = z.object({
   idea: z.string().max(500),
   post_type: z.enum(['announcement', 'thread', 'story', 'promotional', 'educational', 'opinion']),
-  platforms: z.array(z.enum(['twitter', 'linkedin', 'instagram', 'threads'])),
+  platforms: z.array(z.enum(['twitter'])),
   tone: z.enum(['professional', 'casual', 'witty', 'authoritative', 'friendly']),
   language: z.string(),
-  model: z.enum(['openai', 'anthropic'])
+  model: z.enum(['gemini'])
 });
 
 export const generate = async (req: AuthRequest, res: Response) => {

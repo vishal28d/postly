@@ -1,11 +1,8 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { redis } from '../utils/redis';
-import { prisma } from '../utils/db';
-import { generateContent } from '../services/ai.service';
 
 const token = process.env.TELEGRAM_BOT_TOKEN || '';
 
-// If token is missing, we don't crash the server, just log a warning
 export const bot = token ? new TelegramBot(token, { webHook: true }) : null;
 
 if (bot) {
@@ -27,21 +24,11 @@ if (bot) {
     bot.sendMessage(msg.chat.id, "Available commands:\n/start - Start a new post\n/status - Check last 5 posts\n/accounts - List linked accounts\n/help - Show this message");
   });
 
-  bot.onText(/\/accounts/, async (msg) => {
-    bot.sendMessage(msg.chat.id, "Accounts command received. In a full implementation this would query the DB for your mapped user account.");
-  });
-
-  bot.onText(/\/status/, async (msg) => {
-    bot.sendMessage(msg.chat.id, "Status command received.");
-  });
-
   bot.on('callback_query', async (query) => {
     if (!query.message) return;
     const chatId = query.message.chat.id;
     const data = query.data || '';
 
-    const currentState = await redis.get(`chat:${chatId}:state`);
-    
     if (data.startsWith('type_')) {
       const type = data.split('_')[1];
       await redis.set(`chat:${chatId}:post_type`, type, 'EX', 1800);
@@ -50,8 +37,7 @@ if (bot) {
       bot.sendMessage(chatId, "Which platforms should I post to?", {
         reply_markup: {
           inline_keyboard: [
-            [{ text: 'Twitter/X', callback_data: 'plat_twitter' }, { text: 'LinkedIn', callback_data: 'plat_linkedin' }],
-            [{ text: 'Instagram', callback_data: 'plat_instagram' }, { text: 'Threads', callback_data: 'plat_threads' }],
+            [{ text: 'Twitter/X', callback_data: 'plat_twitter' }],
             [{ text: 'Done selecting platforms', callback_data: 'plat_done' }]
           ]
         }
@@ -84,8 +70,7 @@ if (bot) {
       bot.sendMessage(chatId, "Which AI model do you want to use?", {
         reply_markup: {
           inline_keyboard: [
-            [{ text: 'GPT-4o (OpenAI)', callback_data: 'mod_openai' }],
-            [{ text: 'Claude Sonnet (Anthropic)', callback_data: 'mod_anthropic' }]
+            [{ text: 'Gemini (Google)', callback_data: 'mod_gemini' }]
           ]
         }
       });
@@ -108,13 +93,10 @@ if (bot) {
       await redis.set(`chat:${chatId}:idea`, msg.text, 'EX', 1800);
       bot.sendMessage(chatId, "Generating your content... ⚙️");
       
-      // Ideally we would trigger the generation logic here and show preview.
-      // For now, we mock the success.
       bot.sendMessage(chatId, "Preview:\n(Generated Content Here)\n\nConfirm and post?", {
         reply_markup: {
           inline_keyboard: [
             [{ text: 'Yes, Post Now ✅', callback_data: 'action_post' }],
-            [{ text: 'Edit Idea ✏️', callback_data: 'action_edit' }],
             [{ text: 'Cancel ❌', callback_data: 'action_cancel' }]
           ]
         }
