@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id               String          @id @default(uuid())
+  email            String          @unique
+  password_hash    String
+  name             String
+  bio              String?
+  default_tone     String?
+  default_language String?
+  created_at       DateTime        @default(now())
+  social_accounts  SocialAccount[]
+  ai_key           AIKey?
+  posts            Post[]
+}
+
+model SocialAccount {
+  id                String   @id @default(uuid())
+  user_id           String
+  platform          String
+  access_token_enc  String
+  refresh_token_enc String?
+  handle            String?
+  connected_at      DateTime @default(now())
+  user              User     @relation(fields: [user_id], references: [id])
+}
+
+model AIKey {
+  id                String   @id @default(uuid())
+  user_id           String   @unique
+  openai_key_enc    String?
+  anthropic_key_enc String?
+  updated_at        DateTime @updatedAt
+  user              User     @relation(fields: [user_id], references: [id])
+}
+
+model Post {
+  id             String         @id @default(uuid())
+  user_id        String
+  idea           String
+  post_type      String
+  tone           String
+  language       String
+  model_used     String
+  created_at     DateTime       @default(now())
+  publish_at     DateTime?
+  status         String
+  platform_posts PlatformPost[]
+  user           User           @relation(fields: [user_id], references: [id])
+}
+
+model PlatformPost {
+  id            String    @id @default(uuid())
+  post_id       String
+  platform      String
+  content       String
+  status        String
+  published_at  DateTime?
+  error_message String?
+  attempts      Int       @default(0)
+  post          Post      @relation(fields: [post_id], references: [id])
+}
