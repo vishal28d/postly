@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import contentRoutes from './routes/content.routes';
+import botRoutes from './routes/bot.routes';
 import { errorHandler } from './middlewares/errorHandler';
 
 const app = express();
@@ -21,6 +22,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/content', contentRoutes);
+app.use('/api/webhook', botRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
