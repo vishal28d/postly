@@ -2,7 +2,25 @@ import TelegramBot from 'node-telegram-bot-api';
 import { redis } from '../utils/redis';
 import { prisma } from '../utils/db';
 import { generateContent } from '../services/ai.service';
-import { publishQueue } from '../queues/publish.queue';
+import { publishQueue, publishWorker } from '../queues/publish.queue';
+
+if (bot) {
+  publishWorker.on('completed', (job) => {
+    const { chatId, platform } = job.data;
+    if (chatId) {
+      bot.sendMessage(chatId, `🚀 SUCCESS! Your post has been published to ${platform}.`);
+    }
+  });
+
+  publishWorker.on('failed', (job, err) => {
+    if (job) {
+      const { chatId, platform } = job.data;
+      if (chatId) {
+        bot.sendMessage(chatId, `❌ FAILED! Could not publish to ${platform}: ${err.message}`);
+      }
+    }
+  });
+}
 
 const token = process.env.TELEGRAM_BOT_TOKEN || '';
 
@@ -145,7 +163,7 @@ if (bot) {
             status: 'queued'
           }
         });
-        await publishQueue.add('publish', { platformPostId: pPost.id, platform, userId: user.id }, {
+        await publishQueue.add('publish', { platformPostId: pPost.id, platform, userId: user.id, chatId }, {
           attempts: 3, backoff: { type: 'exponential', delay: 1000 }
         });
       }
