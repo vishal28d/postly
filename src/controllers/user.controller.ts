@@ -37,7 +37,7 @@ export const addSocialAccount = async (req: AuthRequest, res: Response) => {
     }
     const access_token_enc = encrypt(access_token);
     const refresh_token_enc = refresh_token ? encrypt(refresh_token) : null;
-    
+
     const account = await prisma.socialAccount.create({
       data: {
         user_id: req.user!.id,
@@ -67,7 +67,7 @@ export const getSocialAccounts = async (req: AuthRequest, res: Response) => {
 
 export const deleteSocialAccount = async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     await prisma.socialAccount.delete({
       where: { id }
     });
@@ -80,12 +80,12 @@ export const deleteSocialAccount = async (req: AuthRequest, res: Response) => {
 export const updateAIKeys = async (req: AuthRequest, res: Response) => {
   try {
     const { gemini_key } = req.body;
-    
+
     const gemini_key_enc = gemini_key ? encrypt(gemini_key) : undefined;
-    
+
     const data: any = {};
     if (gemini_key_enc) data.gemini_key_enc = gemini_key_enc;
-    
+
     const aiKeys = await prisma.aIKey.upsert({
       where: { user_id: req.user!.id },
       update: data,
@@ -94,7 +94,7 @@ export const updateAIKeys = async (req: AuthRequest, res: Response) => {
         ...data
       }
     });
-    
+
     return res.status(200).json({ message: 'AI keys updated successfully' });
   } catch (error) {
     return res.status(500).json({ error: 'Internal Server Error' });

@@ -95,7 +95,7 @@ export const schedulePost = async (req: AuthRequest, res: Response) => {
 
 export const retryPost = async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params; // Post ID
+    const id = req.params.id as string; // Post ID
     const failedPlatformPosts = await prisma.platformPost.findMany({
       where: { post_id: id, status: 'failed' }
     });
@@ -123,7 +123,7 @@ export const retryPost = async (req: AuthRequest, res: Response) => {
 
 export const deletePost = async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     await prisma.post.update({
       where: { id },
       data: { status: 'cancelled' }
@@ -167,7 +167,7 @@ export const getPosts = async (req: AuthRequest, res: Response) => {
 export const getPost = async (req: AuthRequest, res: Response) => {
   try {
     const post = await prisma.post.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       include: { platform_posts: true }
     });
     if (!post || post.user_id !== req.user!.id) {
@@ -187,12 +187,12 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
       where: { post: { user_id: req.user!.id } }
     });
     
-    const published = pPosts.filter(p => p.status === 'published').length;
-    const failed = pPosts.filter(p => p.status === 'failed').length;
+    const published = pPosts.filter((p: any) => p.status === 'published').length;
+    const failed = pPosts.filter((p: any) => p.status === 'failed').length;
     
     const successRate = (published / (published + failed || 1)) * 100;
     
-    const perPlatform = pPosts.reduce((acc: any, p) => {
+    const perPlatform = pPosts.reduce((acc: any, p: any) => {
       acc[p.platform] = (acc[p.platform] || 0) + 1;
       return acc;
     }, {});

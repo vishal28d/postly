@@ -24,7 +24,7 @@ export const register = async (req: Request, res: Response) => {
     return res.status(201).json({ user: { id: user.id, email: user.email, name: user.name } });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
+      return res.status(400).json({ error: (error as any).errors });
     }
     return res.status(500).json({ error: 'Internal Server Error' });
   }
