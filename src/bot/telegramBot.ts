@@ -138,7 +138,7 @@ if (bot) {
       const platformsStr = await redis.get(`chat:${chatId}:platforms`) || 'twitter';
       const platforms = platformsStr.split(',');
       const previewRaw = await redis.get(`chat:${chatId}:preview`);
-      const generated_content = previewRaw ? JSON.parse(previewRaw) : {};
+      const generated_content = typeof previewRaw === 'string' ? JSON.parse(previewRaw) : (previewRaw || {});
 
       const post = await prisma.post.create({
         data: {
