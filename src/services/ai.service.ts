@@ -9,13 +9,12 @@ const callNvidiaNim = async (prompt: string): Promise<string> => {
   const invokeUrl = "https://integrate.api.nvidia.com/v1/chat/completions";
 
   const payload = JSON.stringify({
-    "model": "google/gemma-3-27b-it",
+    "model": "google/gemma-2-2b-it",
     "messages": [{ "role": "user", "content": prompt }],
-    "max_tokens": 16384,
+    "max_tokens": 4096,
     "temperature": 0.7,
     "top_p": 0.95,
-    "stream": false,
-    "chat_template_kwargs": {"enable_thinking":true}
+    "stream": false
   });
 
   return new Promise((resolve, reject) => {
