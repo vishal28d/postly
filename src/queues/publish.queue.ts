@@ -1,10 +1,10 @@
 import { Queue, Worker, Job } from 'bullmq';
-import { redis } from '../utils/redis';
+import { bullMqConnection } from '../utils/redis';
 import { prisma } from '../utils/db';
 import { decrypt } from '../utils/crypto';
 import { TwitterApi } from 'twitter-api-v2';
 
-export const publishQueue = new Queue('publishQueue', { connection: redis });
+export const publishQueue = new Queue('publishQueue', { connection: bullMqConnection });
 
 export const publishWorker = new Worker('publishQueue', async (job: Job) => {
   const { platformPostId, platform, userId } = job.data;
@@ -61,7 +61,7 @@ export const publishWorker = new Worker('publishQueue', async (job: Job) => {
   }
   console.log(`Worker: Job ${job.id} completed successfully`);
 }, {
-  connection: redis,
+  connection: bullMqConnection,
   concurrency: 5,
 });
 

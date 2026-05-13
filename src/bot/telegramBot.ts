@@ -53,7 +53,7 @@ export const stopBot = async () => {
 if (bot) {
   bot.onText(/\/start/, async (msg: TelegramBot.Message) => {
     const chatId = msg.chat.id;
-    await redis.set(`chat:${chatId}:state`, 'AWAITING_POST_TYPE', 'EX', 1800);
+    await redis.set(`chat:${chatId}:state`, 'AWAITING_POST_TYPE', { ex: 1800 });
     bot.sendMessage(chatId, "Hey 👋 What type of post is this?", {
       reply_markup: {
         inline_keyboard: [
@@ -76,8 +76,8 @@ if (bot) {
 
     if (data.startsWith('type_')) {
       const type = data.split('_')[1];
-      await redis.set(`chat:${chatId}:post_type`, type, 'EX', 1800);
-      await redis.set(`chat:${chatId}:state`, 'AWAITING_PLATFORMS', 'EX', 1800);
+      await redis.set(`chat:${chatId}:post_type`, type, { ex: 1800 });
+      await redis.set(`chat:${chatId}:state`, 'AWAITING_PLATFORMS', { ex: 1800 });
 
       bot.sendMessage(chatId, "Which platforms should I post to?", {
         reply_markup: {
@@ -90,7 +90,7 @@ if (bot) {
     } else if (data.startsWith('plat_')) {
       const plat = data.split('_')[1];
       if (plat === 'done') {
-        await redis.set(`chat:${chatId}:state`, 'AWAITING_TONE', 'EX', 1800);
+        await redis.set(`chat:${chatId}:state`, 'AWAITING_TONE', { ex: 1800 });
         bot.sendMessage(chatId, "What tone should the content have?", {
           reply_markup: {
             inline_keyboard: [
@@ -104,13 +104,13 @@ if (bot) {
         const existing = await redis.get(`chat:${chatId}:platforms`) || '';
         const pl = existing ? existing.split(',') : [];
         if (!pl.includes(plat)) pl.push(plat);
-        await redis.set(`chat:${chatId}:platforms`, pl.join(','), 'EX', 1800);
+        await redis.set(`chat:${chatId}:platforms`, pl.join(','), { ex: 1800 });
         bot.answerCallbackQuery(query.id, { text: `Added ${plat}` });
       }
     } else if (data.startsWith('tone_')) {
       const tone = data.split('_')[1];
-      await redis.set(`chat:${chatId}:tone`, tone, 'EX', 1800);
-      await redis.set(`chat:${chatId}:state`, 'AWAITING_MODEL', 'EX', 1800);
+      await redis.set(`chat:${chatId}:tone`, tone, { ex: 1800 });
+      await redis.set(`chat:${chatId}:state`, 'AWAITING_MODEL', { ex: 1800 });
 
       bot.sendMessage(chatId, "Which AI model do you want to use?", {
         reply_markup: {
@@ -121,8 +121,8 @@ if (bot) {
       });
     } else if (data.startsWith('mod_')) {
       const mod = data.split('_')[1];
-      await redis.set(`chat:${chatId}:model`, mod, 'EX', 1800);
-      await redis.set(`chat:${chatId}:state`, 'AWAITING_IDEA', 'EX', 1800);
+      await redis.set(`chat:${chatId}:model`, mod, { ex: 1800 });
+      await redis.set(`chat:${chatId}:state`, 'AWAITING_IDEA', { ex: 1800 });
 
       bot.sendMessage(chatId, "Tell me the idea or core message — keep it brief.");
     } else if (data === 'action_post') {
@@ -184,11 +184,19 @@ if (bot) {
     const currentState = await redis.get(`chat:${chatId}:state`);
 
     if (currentState === 'AWAITING_IDEA') {
-      await redis.set(`chat:${chatId}:idea`, msg.text, 'EX', 1800);
+      await redis.set(`chat:${chatId}:idea`, msg.text, { ex: 1800 });
       bot.sendMessage(chatId, "Generating your content using Gemini... ⚙️");
 
       try {
-        let user = await prisma.user.findFirst();
+        let user;
+        try {
+          user = await prisma.user.findFirst();
+        } catch (dbErr: any) {
+          if (dbErr.message.includes("Can't reach database server")) {
+            throw new Error('Database is unreachable. Please check if your Supabase project is active or resumed.');
+          }
+          throw dbErr;
+        }
         if (!user) {
           user = await prisma.user.create({ data: { email: 'botuser@test.com', password_hash: 'xyz', name: 'Bot User' } });
         }
@@ -203,7 +211,7 @@ if (bot) {
         const content = await generateContent(userId, msg.text, platforms, tone, 'English', model);
 
         // Save preview for confirmation
-        await redis.set(`chat:${chatId}:preview`, JSON.stringify(content.generated), 'EX', 1800);
+        await redis.set(`chat:${chatId}:preview`, JSON.stringify(content.generated), { ex: 1800 });
 
         bot.sendMessage(chatId, `Preview:\n\n${content.generated.twitter?.content || ''}\n\nConfirm and post?`, {
           reply_markup: {
@@ -213,7 +221,7 @@ if (bot) {
             ]
           }
         });
-        await redis.set(`chat:${chatId}:state`, 'AWAITING_CONFIRMATION', 'EX', 1800);
+        await redis.set(`chat:${chatId}:state`, 'AWAITING_CONFIRMATION', { ex: 1800 });
       } catch (err: any) {
         bot.sendMessage(chatId, `Error generating content: ${err.message}`);
       }
