@@ -60,7 +60,7 @@ if (bot) {
     const chatId = msg.chat.id;
     
     // Check if user is linked
-    const userId = await redis.get(`telegram:${chatId}:userId`);
+    const userId = await redis.get<string>(`telegram:${chatId}:userId`);
     if (!userId) {
       return bot.sendMessage(chatId, 
         "Hey 👋 Welcome to Postly Bot!\n\nYou need to link your account first. Use /link to connect your Postly account to this bot.",
@@ -93,7 +93,7 @@ if (bot) {
     const chatId = msg.chat.id;
     
     // Check if already linked
-    const existingUserId = await redis.get(`telegram:${chatId}:userId`);
+    const existingUserId = await redis.get<string>(`telegram:${chatId}:userId`);
     if (existingUserId) {
       return bot.sendMessage(chatId, 
         'You are already linked to an account. Use /unlink to disconnect first if you want to link a different account.'
@@ -118,7 +118,7 @@ if (bot) {
       }
     }
     
-    const linkUrl = `${process.env.WEB_URL || 'http://localhost:3000'}/auth/telegram-link?token=${verificationId}&chatId=${chatId}`;
+    const linkUrl = `${process.env.WEB_URL || 'https://postly-knzw.onrender.com'}/auth/telegram-link?token=${verificationId}&chatId=${chatId}`;
     
     bot.sendMessage(chatId, 
       `To link your Telegram account to Postly:\n\n1. Visit: ${linkUrl}\n2. Log in to your Postly account\n3. Authorize this bot\n\nLink expires in 5 minutes.`,
@@ -140,7 +140,7 @@ if (bot) {
     const chatId = msg.chat.id;
     
     // Get userId from Redis/storage
-    const userId = await redis.get(`telegram:${chatId}:userId`);
+    const userId = await redis.get<string>(`telegram:${chatId}:userId`);
     if (!userId) {
       return bot.sendMessage(chatId, 
         'You are not linked to any account. Use /link to connect your account first.'
@@ -170,7 +170,7 @@ if (bot) {
     const chatId = msg.chat.id;
     
     // Get userId from Redis/storage
-    const userId = await redis.get(`telegram:${chatId}:userId`);
+    const userId = await redis.get<string>(`telegram:${chatId}:userId`);
     if (!userId) {
       return bot.sendMessage(chatId, 
         'You are not linked to any account. Use /link to connect your account first.'
@@ -185,7 +185,7 @@ if (bot) {
       include: {
         platform_posts: {
           take: 1,
-          orderBy: { created_at: 'desc' }
+          orderBy: { id: 'desc' }
         }
       }
     });
@@ -252,7 +252,7 @@ if (bot) {
           }
         });
       } else {
-        const existingRaw = await redis.get(`chat:${chatId}:platforms`);
+        const existingRaw = await redis.get<string>(`chat:${chatId}:platforms`);
         const existing = existingRaw ?? '';
         const pl = existing ? existing.split(',') : [];
         if (!pl.includes(plat)) pl.push(plat);
@@ -279,26 +279,26 @@ if (bot) {
       bot.sendMessage(chatId, "Tell me the idea or core message — keep it brief.");
     } else if (data === 'action_post') {
       // Check authentication before allowing post creation
-      const userId = await redis.get(`telegram:${chatId}:userId`);
+      const userId = await redis.get<string>(`telegram:${chatId}:userId`);
       if (!userId) {
         return bot.sendMessage(chatId, 
           'Please link your account first using /link'
         );
       }
       
-      const ideaRaw = await redis.get(`chat:${chatId}:idea`);
+      const ideaRaw = await redis.get<string>(`chat:${chatId}:idea`);
       const idea = ideaRaw ?? '';
-      const post_typeRaw = await redis.get(`chat:${chatId}:post_type`);
+      const post_typeRaw = await redis.get<string>(`chat:${chatId}:post_type`);
       const post_type = post_typeRaw ?? 'announcement';
-      const toneRaw = await redis.get(`chat:${chatId}:tone`);
+      const toneRaw = await redis.get<string>(`chat:${chatId}:tone`);
       const tone = toneRaw ?? 'professional';
-      const modelRaw = await redis.get(`chat:${chatId}:model`);
+      const modelRaw = await redis.get<string>(`chat:${chatId}:model`);
       const model = modelRaw ?? 'gemini';
-      const platformsStrRaw = await redis.get(`chat:${chatId}:platforms`);
+      const platformsStrRaw = await redis.get<string>(`chat:${chatId}:platforms`);
       const platformsStr = platformsStrRaw ?? 'twitter';
       const platforms = platformsStr.split(',');
-      const previewRaw = await redis.get(`chat:${chatId}:preview`);
-      let generated_content = {};
+      const previewRaw = await redis.get<string>(`chat:${chatId}:preview`);
+      let generated_content: Record<string, any> = {};
       if (typeof previewRaw === 'string') {
         try {
           generated_content = JSON.parse(previewRaw);
@@ -347,17 +347,14 @@ if (bot) {
     if (!msg.text || msg.text.startsWith('/')) return;
     
     const chatId = msg.chat.id;
-    const currentState = await redis.get(`chat:${chatId}:state`);
+    const currentState = await redis.get<string>(`chat:${chatId}:state`);
     
     // Check authentication for all bot operations
-    const userId = await redis.get(`telegram:${chatId}:userId`);
+    const userId = await redis.get<string>(`telegram:${chatId}:userId`);
     if (!userId) {
-      // Only allow /link and /start when not authenticated
-      if (!(msg.text === '/link' || msg.text === '/start')) {
-        return bot.sendMessage(chatId, 
-          'Please link your account first using /link'
-        );
-      }
+      return bot.sendMessage(chatId, 
+        'Please link your account first using /link'
+      );
     }
     
     if (currentState === 'AWAITING_IDEA') {
@@ -366,14 +363,14 @@ if (bot) {
       
       try {
         // Use authenticated userId
-        const post_typeRaw = await redis.get(`chat:${chatId}:post_type`);
+        const post_typeRaw = await redis.get<string>(`chat:${chatId}:post_type`);
         const post_type = post_typeRaw ?? 'announcement';
-        const platformsStrRaw = await redis.get(`chat:${chatId}:platforms`);
+        const platformsStrRaw = await redis.get<string>(`chat:${chatId}:platforms`);
         const platformsStr = platformsStrRaw ?? 'twitter';
         const platforms = platformsStr.split(',');
-        const toneRaw = await redis.get(`chat:${chatId}:tone`);
+        const toneRaw = await redis.get<string>(`chat:${chatId}:tone`);
         const tone = toneRaw ?? 'professional';
-        const modelRaw = await redis.get(`chat:${chatId}:model`);
+        const modelRaw = await redis.get<string>(`chat:${chatId}:model`);
         const model = modelRaw ?? 'gemini';
         
         const content = await generateContent(userId, msg.text, platforms, tone, 'English', model);
