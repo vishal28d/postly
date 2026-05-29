@@ -7,11 +7,11 @@ import { randomUUID } from 'crypto';
 
 const token = process.env.TELEGRAM_BOT_TOKEN || '';
 
-export const bot = token ? new TelegramBot(token, { 
+export const bot = token ? new TelegramBot(token, {
   polling: {
     autoStart: true,
     params: { timeout: 10 }
-  } 
+  }
 }) : null;
 
 // Queue listeners - only attach if bot exists
@@ -58,11 +58,11 @@ const pendingVerifications = new Map<string, { chatId: string; expires: number }
 if (bot) {
   bot.onText(/\/start/, async (msg: TelegramBot.Message) => {
     const chatId = msg.chat.id;
-    
+
     // Check if user is linked
     const userId = await redis.get<string>(`telegram:${chatId}:userId`);
     if (!userId) {
-      return bot.sendMessage(chatId, 
+      return bot.sendMessage(chatId,
         "Hey 👋 Welcome to Postly Bot!\n\nYou need to link your account first. Use /link to connect your Postly account to this bot.",
         {
           reply_markup: {
@@ -71,7 +71,7 @@ if (bot) {
         }
       );
     }
-    
+
     await redis.set(`chat:${chatId}:state`, 'AWAITING_POST_TYPE', { ex: 1800 });
     bot.sendMessage(chatId, "Hey 👋 What type of post is this?", {
       reply_markup: {
@@ -91,25 +91,25 @@ if (bot) {
 
   bot.onText(/\/link/, async (msg: TelegramBot.Message) => {
     const chatId = msg.chat.id;
-    
+
     // Check if already linked
     const existingUserId = await redis.get<string>(`telegram:${chatId}:userId`);
     if (existingUserId) {
-      return bot.sendMessage(chatId, 
+      return bot.sendMessage(chatId,
         'You are already linked to an account. Use /unlink to disconnect first if you want to link a different account.'
       );
     }
-    
+
     // Generate verification token
     const verificationId = randomUUID();
     const verificationData = { chatId: chatId.toString() };
-    
+
     // Store verification with 5 minute expiration
     pendingVerifications.set(verificationId, {
       chatId: chatId.toString(),
       expires: Date.now() + 300000 // 5 minutes
     });
-    
+
     // Clean up old verifications periodically
     const now = Date.now();
     for (const [id, verification] of pendingVerifications.entries()) {
@@ -117,10 +117,10 @@ if (bot) {
         pendingVerifications.delete(id);
       }
     }
-    
-    const linkUrl = `${process.env.WEB_URL || 'https://postly-knzw.onrender.com'}/auth/telegram-link?token=${verificationId}&chatId=${chatId}`;
-    
-    bot.sendMessage(chatId, 
+
+    const linkUrl = `${process.env.WEB_URL || 'http://localhost:3000'}/auth/telegram-link?token=${verificationId}&chatId=${chatId}`;
+
+    bot.sendMessage(chatId,
       `To link your Telegram account to Postly:\n\n1. Visit: ${linkUrl}\n2. Log in to your Postly account\n3. Authorize this bot\n\nLink expires in 5 minutes.`,
       {
         reply_markup: {
@@ -138,45 +138,45 @@ if (bot) {
 
   bot.onText(/\/posts/, async (msg: TelegramBot.Message) => {
     const chatId = msg.chat.id;
-    
+
     // Get userId from Redis/storage
     const userId = await redis.get<string>(`telegram:${chatId}:userId`);
     if (!userId) {
-      return bot.sendMessage(chatId, 
+      return bot.sendMessage(chatId,
         'You are not linked to any account. Use /link to connect your account first.'
       );
     }
-    
+
     // Fetch user's posts
     const posts = await prisma.post.findMany({
       where: { user_id: userId },
       orderBy: { created_at: 'desc' },
       take: 5
     });
-    
+
     if (posts.length === 0) {
       return bot.sendMessage(chatId, 'You have no posts yet.');
     }
-    
+
     const postsText = posts.map((p, i) => {
       const statusEmoji = p.status === 'published' ? '✅' : p.status === 'processing' ? '⏳' : '❌';
-      return `${i+1}. ${statusEmoji} [${p.status}] ${p.idea.substring(0, 40)}${p.idea.length > 40 ? '...' : ''}`;
+      return `${i + 1}. ${statusEmoji} [${p.status}] ${p.idea.substring(0, 40)}${p.idea.length > 40 ? '...' : ''}`;
     }).join('\n');
-    
+
     bot.sendMessage(chatId, `Your recent posts:\n\n${postsText}\n\nUse /status for more details.`);
   });
 
   bot.onText(/\/status/, async (msg: TelegramBot.Message) => {
     const chatId = msg.chat.id;
-    
+
     // Get userId from Redis/storage
     const userId = await redis.get<string>(`telegram:${chatId}:userId`);
     if (!userId) {
-      return bot.sendMessage(chatId, 
+      return bot.sendMessage(chatId,
         'You are not linked to any account. Use /link to connect your account first.'
       );
     }
-    
+
     // Fetch user's recent posts with more detail
     const posts = await prisma.post.findMany({
       where: { user_id: userId },
@@ -189,18 +189,18 @@ if (bot) {
         }
       }
     });
-    
+
     if (posts.length === 0) {
       return bot.sendMessage(chatId, 'You have no posts yet.');
     }
-    
+
     let statusText = 'Your recent posts:\n\n';
     posts.forEach((p, i) => {
       const statusEmoji = p.status === 'published' ? '✅' : p.status === 'processing' ? '⏳' : p.status === 'failed' ? '❌' : '📝';
       const date = p.created_at?.toLocaleString() ?? 'Unknown';
-      statusText += `${i+1}. ${statusEmoji} ${p.idea}\n`;
+      statusText += `${i + 1}. ${statusEmoji} ${p.idea}\n`;
       statusText += `   Status: ${p.status} | Created: ${date}\n`;
-      
+
       if (p.platform_posts.length > 0) {
         const platformPost = p.platform_posts[0];
         const platEmoji = platformPost.platform === 'twitter' ? '🐦' : '📱';
@@ -208,7 +208,7 @@ if (bot) {
       }
       statusText += '\n';
     });
-    
+
     bot.sendMessage(chatId, statusText);
   });
 
@@ -216,7 +216,7 @@ if (bot) {
     if (!query.message) return;
     const chatId = query.message.chat.id;
     const data = query.data || '';
-    
+
     // Handle link start callback
     if (data === 'link_start') {
       return bot.answerCallbackQuery(query.id, {
@@ -224,12 +224,12 @@ if (bot) {
         show_alert: true
       });
     }
-    
+
     if (data.startsWith('type_')) {
       const type = data.split('_')[1];
       await redis.set(`chat:${chatId}:post_type`, type, { ex: 1800 });
       await redis.set(`chat:${chatId}:state`, 'AWAITING_PLATFORMS', { ex: 1800 });
-      
+
       bot.sendMessage(chatId, "Which platforms should I post to?", {
         reply_markup: {
           inline_keyboard: [
@@ -263,7 +263,7 @@ if (bot) {
       const tone = data.split('_')[1];
       await redis.set(`chat:${chatId}:tone`, tone, { ex: 1800 });
       await redis.set(`chat:${chatId}:state`, 'AWAITING_MODEL', { ex: 1800 });
-      
+
       bot.sendMessage(chatId, "Which AI model do you want to use?", {
         reply_markup: {
           inline_keyboard: [
@@ -275,17 +275,17 @@ if (bot) {
       const mod = data.split('_')[1];
       await redis.set(`chat:${chatId}:model`, mod, { ex: 1800 });
       await redis.set(`chat:${chatId}:state`, 'AWAITING_IDEA', { ex: 1800 });
-      
+
       bot.sendMessage(chatId, "Tell me the idea or core message — keep it brief.");
     } else if (data === 'action_post') {
       // Check authentication before allowing post creation
       const userId = await redis.get<string>(`telegram:${chatId}:userId`);
       if (!userId) {
-        return bot.sendMessage(chatId, 
+        return bot.sendMessage(chatId,
           'Please link your account first using /link'
         );
       }
-      
+
       const ideaRaw = await redis.get<string>(`chat:${chatId}:idea`);
       const idea = ideaRaw ?? '';
       const post_typeRaw = await redis.get<string>(`chat:${chatId}:post_type`);
@@ -306,7 +306,7 @@ if (bot) {
           generated_content = {};
         }
       }
-      
+
       const post = await prisma.post.create({
         data: {
           user_id: userId, // Use authenticated userId instead of findFirst()
@@ -319,7 +319,7 @@ if (bot) {
           publish_at: new Date()
         }
       });
-      
+
       for (const platform of platforms) {
         if (platform !== 'twitter') continue;
         const pPost = await prisma.platformPost.create({
@@ -334,7 +334,7 @@ if (bot) {
           attempts: 3, backoff: { type: 'exponential', delay: 1000 }
         });
       }
-      
+
       bot.sendMessage(chatId, "✅ Post has been queued for publishing!");
       await redis.del(`chat:${chatId}:state`);
     } else if (data === 'action_cancel') {
@@ -342,25 +342,25 @@ if (bot) {
       await redis.del(`chat:${chatId}:state`);
     }
   });
-  
+
   bot.on('message', async (msg: TelegramBot.Message) => {
     if (!msg.text || msg.text.startsWith('/')) return;
-    
+
     const chatId = msg.chat.id;
     const currentState = await redis.get<string>(`chat:${chatId}:state`);
-    
+
     // Check authentication for all bot operations
     const userId = await redis.get<string>(`telegram:${chatId}:userId`);
     if (!userId) {
-      return bot.sendMessage(chatId, 
+      return bot.sendMessage(chatId,
         'Please link your account first using /link'
       );
     }
-    
+
     if (currentState === 'AWAITING_IDEA') {
       await redis.set(`chat:${chatId}:idea`, msg.text, { ex: 1800 });
       bot.sendMessage(chatId, "Generating your content using Gemini... ⚙️");
-      
+
       try {
         // Use authenticated userId
         const post_typeRaw = await redis.get<string>(`chat:${chatId}:post_type`);
@@ -372,12 +372,12 @@ if (bot) {
         const tone = toneRaw ?? 'professional';
         const modelRaw = await redis.get<string>(`chat:${chatId}:model`);
         const model = modelRaw ?? 'gemini';
-        
+
         const content = await generateContent(userId, msg.text, platforms, tone, 'English', model);
-        
+
         // Save preview for confirmation
         await redis.set(`chat:${chatId}:preview`, JSON.stringify(content.generated), { ex: 1800 });
-        
+
         bot.sendMessage(chatId, `Preview:\n\n${content.generated.twitter?.content || ''}\n\nConfirm and post?`, {
           reply_markup: {
             inline_keyboard: [
