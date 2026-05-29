@@ -26,6 +26,7 @@ if (fs.existsSync(PID_FILE)) {
     }
   }
 }
+
 fs.writeFileSync(PID_FILE, process.pid.toString());
 
 const server = app.listen(PORT, async () => {
